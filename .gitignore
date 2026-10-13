@@ -1,5 +1,8 @@
 node_modules/
 npm-debug.log
+.env
+.env.*
+!.env.example
 data/*.json
 data/uploads/*
 uploads/
@@ -7,3 +10,6 @@ uploads/
 !data/uploads/.gitkeep
 .DS_Store
 *.log
+.vscode/
+.idea/
+
