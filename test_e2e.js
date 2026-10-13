@@ -84,18 +84,18 @@ async function runEndToEndTests() {
     }, { title: 'Unauthorized Env' });
     assert(res.statusCode === 401, 'Unauthenticated POST /api/documents returns HTTP 401');
 
-    // Login as Rafael (Default Sender)
+    // Login as Demo User (Default Sender)
     res = await request({
       hostname: 'localhost',
       port: 3000,
       path: '/api/auth/login',
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
-    }, { email: 'rafael@opensign.local', password: 'password123' });
-    assert(res.statusCode === 200, 'POST /api/auth/login succeeds for Rafael (HTTP 200)');
-    const rafaelAuth = JSON.parse(res.body);
-    const rafaelToken = rafaelAuth.token;
-    assert(rafaelToken && rafaelToken.startsWith('tok_'), `Valid session token issued: ${rafaelToken.slice(0, 12)}...`);
+    }, { email: 'demo@opensign.local', password: 'demo123' });
+    assert(res.statusCode === 200, 'POST /api/auth/login succeeds for Demo User (HTTP 200)');
+    const demoAuth = JSON.parse(res.body);
+    const demoToken = demoAuth.token;
+    assert(demoToken && demoToken.startsWith('tok_'), `Valid session token issued: ${demoToken.slice(0, 12)}...`);
 
     // Register second independent sender (Alice Morgan)
     const testAliceEmail = `alice_${Date.now()}@lawfirm.com`;
@@ -116,9 +116,9 @@ async function runEndToEndTests() {
       port: 3000,
       path: '/api/auth/me',
       method: 'GET',
-      headers: { 'Authorization': `Bearer ${rafaelToken}` }
+      headers: { 'Authorization': `Bearer ${demoToken}` }
     });
-    assert(res.statusCode === 200 && JSON.parse(res.body).user.email === 'rafael@opensign.local', 'Auth check identifies Rafael');
+    assert(res.statusCode === 200 && JSON.parse(res.body).user.email === 'demo@opensign.local', 'Auth check identifies Demo User');
 
     res = await request({
       hostname: 'localhost',
@@ -148,17 +148,17 @@ async function runEndToEndTests() {
     assert(res.statusCode === 201, 'Alice creates private envelope (HTTP 201)');
     const aliceDoc = JSON.parse(res.body);
 
-    // Verify Rafael CANNOT see Alice's envelope on his dashboard
+    // Verify Demo User CANNOT see Alice's envelope on his dashboard
     res = await request({
       hostname: 'localhost',
       port: 3000,
       path: '/api/documents',
       method: 'GET',
-      headers: { 'Authorization': `Bearer ${rafaelToken}` }
+      headers: { 'Authorization': `Bearer ${demoToken}` }
     });
-    const rafaelDocList = JSON.parse(res.body);
-    const rafaelSeesAlice = rafaelDocList.some(d => d.id === aliceDoc.id);
-    assert(rafaelSeesAlice === false, 'Privacy Isolation: Rafael dashboard DOES NOT leak Alice envelopes');
+    const demoDocList = JSON.parse(res.body);
+    const demoSeesAlice = demoDocList.some(d => d.id === aliceDoc.id);
+    assert(demoSeesAlice === false, 'Privacy Isolation: Demo User dashboard DOES NOT leak Alice envelopes');
 
     // Verify Alice CAN see Alice's envelope on her dashboard
     res = await request({
@@ -200,7 +200,7 @@ async function runEndToEndTests() {
     });
     assert(res.statusCode === 200, 'Signer accesses document payload /api/documents/:id without token requirement');
 
-    // 4. Standard Envelope Creation & Execution (Using Rafael Auth)
+    // 4. Standard Envelope Creation & Execution (Using Demo User Auth)
     console.log('\n[Phase 4: Standard Envelope Execution]');
     const newDocPayload = {
       templateId: 'nda',
@@ -217,11 +217,11 @@ async function runEndToEndTests() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${rafaelToken}`
+        'Authorization': `Bearer ${demoToken}`
       }
     }, newDocPayload);
 
-    assert(res.statusCode === 201, 'POST /api/documents creates envelope under Rafael (HTTP 201)');
+    assert(res.statusCode === 201, 'POST /api/documents creates envelope under Demo User (HTTP 201)');
     const createdDoc = JSON.parse(res.body);
 
     // Simulated valid 1x1 PNG transparent signature
@@ -292,7 +292,7 @@ async function runEndToEndTests() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${rafaelToken}`
+        'Authorization': `Bearer ${demoToken}`
       }
     }, {
       title: 'Custom Multi-Signer SOW Agreement',
@@ -385,7 +385,7 @@ async function runEndToEndTests() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${rafaelToken}`
+        'Authorization': `Bearer ${demoToken}`
       }
     }, {
       templateId: 'nda',
@@ -468,8 +468,8 @@ async function runEndToEndTests() {
       recipientName: 'David Miller',
       recipientEmail: 'david@partner.com',
       signMode: 'both',
-      senderName: 'Rafael (Sender)',
-      senderEmail: 'rafael@opensign.local'
+      senderName: 'Demo Sender',
+      senderEmail: 'demo@opensign.local'
     };
 
     res = await request({
@@ -479,7 +479,7 @@ async function runEndToEndTests() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${rafaelToken}`
+        'Authorization': `Bearer ${demoToken}`
       }
     }, counterSignPayload);
 
@@ -489,13 +489,13 @@ async function runEndToEndTests() {
     assert(counterDoc.signers[0].status === 'pending' && counterDoc.signers[1].status === 'waiting', 'Signer 1 is pending, Signer 2 is waiting');
     assert(counterDoc.signers[1].isSender === true, 'Signer 2 correctly flagged as isSender (initiator)');
 
-    // Check dashboard turn awareness before Signer 1 signs (using Rafael's token)
+    // Check dashboard turn awareness before Signer 1 signs (using Demo User token)
     res = await request({
       hostname: 'localhost',
       port: 3000,
       path: '/api/documents',
       method: 'GET',
-      headers: { 'Authorization': `Bearer ${rafaelToken}` }
+      headers: { 'Authorization': `Bearer ${demoToken}` }
     });
     let docList = JSON.parse(res.body);
     let matchedDoc = docList.find(d => d.id === counterDoc.id);
@@ -512,7 +512,7 @@ async function runEndToEndTests() {
       headers: { 'Content-Type': 'application/json' }
     }, {
       signatureImage: validSignatureImage,
-      signerName: 'Rafael (Sender)',
+      signerName: 'Demo Sender',
       signerId: 'signer_2',
       agreedToLegalNotice: true
     });
@@ -542,12 +542,12 @@ async function runEndToEndTests() {
       port: 3000,
       path: '/api/documents',
       method: 'GET',
-      headers: { 'Authorization': `Bearer ${rafaelToken}` }
+      headers: { 'Authorization': `Bearer ${demoToken}` }
     });
     docList = JSON.parse(res.body);
     matchedDoc = docList.find(d => d.id === counterDoc.id);
     assert(matchedDoc && matchedDoc.myTurn === true, 'DocuSign Action Required: myTurn is now TRUE on dashboard');
-    assert(matchedDoc && matchedDoc.activeSignerName === 'Rafael (Sender)', 'Active signer updated to counter-signer');
+    assert(matchedDoc && matchedDoc.activeSignerName === 'Demo Sender', 'Active signer updated to counter-signer');
 
     // Check single doc view returns myTurn === true
     res = await request({
@@ -568,7 +568,7 @@ async function runEndToEndTests() {
       headers: { 'Content-Type': 'application/json' }
     }, {
       signatureImage: validSignatureImage,
-      signerName: 'Rafael (Sender)',
+      signerName: 'Demo Sender',
       signerId: 'signer_2',
       agreedToLegalNotice: true
     });

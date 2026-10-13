@@ -148,8 +148,8 @@ function switchAuthTab(tab) {
 }
 
 async function quickDemoLogin() {
-  document.getElementById('auth-login-email').value = 'rafael@opensign.local';
-  document.getElementById('auth-login-password').value = 'password123';
+  document.getElementById('auth-login-email').value = 'demo@opensign.local';
+  document.getElementById('auth-login-password').value = 'demo123';
   await submitLogin();
 }
 
@@ -467,7 +467,7 @@ function renderDocumentViewer(doc) {
         <p class="text-xs font-semibold text-indigo-700 uppercase tracking-wider">Your Counter-Sign Slot</p>
         <span class="text-[10px] bg-indigo-200 text-indigo-900 font-bold px-2 py-0.5 rounded">ACTION REQUIRED</span>
       </div>
-      <p class="text-sm font-bold text-slate-800">${escapeHtml(doc.activeSignerName || 'Rafael (Sender)')}</p>
+      <p class="text-sm font-bold text-slate-800">${escapeHtml(doc.activeSignerName || 'Counter-Signer')}</p>
       <p class="text-xs text-slate-500 mb-3">${escapeHtml(doc.activeSignerEmail || '')}</p>
       <div class="p-3 bg-white rounded-lg border border-indigo-200 text-[11px] text-slate-600">
         <p class="font-bold text-indigo-900 mb-0.5">Primary Party Has Executed:</p>
@@ -610,8 +610,8 @@ async function submitNewDocument() {
 
   const accessCode = (document.getElementById('new-access-code')?.value || '').trim();
   const signMode = currentSignMode;
-  const defaultSenderName = currentUser ? currentUser.name : 'Rafael (Sender)';
-  const defaultSenderEmail = currentUser ? currentUser.email : 'rafael@opensign.local';
+  const defaultSenderName = currentUser ? currentUser.name : 'Demo Sender';
+  const defaultSenderEmail = currentUser ? currentUser.email : 'demo@opensign.local';
   const senderName = (document.getElementById('sender-name-input')?.value || defaultSenderName).trim();
   const senderEmail = (document.getElementById('sender-email-input')?.value || defaultSenderEmail).trim();
 

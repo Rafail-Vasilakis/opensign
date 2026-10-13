@@ -272,7 +272,7 @@ app.get('/api/templates', (req, res) => {
 // Get Summary Metrics & Savings (Private to Logged-in Sender)
 app.get('/api/stats', requireAuth, (req, res) => {
   const db = getDatabase();
-  const docs = db.documents.filter(d => d.userId === req.user.id || (!d.userId && req.user.id === 'usr_default_rafael'));
+  const docs = db.documents.filter(d => d.userId === req.user.id || (!d.userId && req.user.id === 'usr_default_demo'));
   const completed = docs.filter(d => d.status === 'completed').length;
   const pending = docs.filter(d => d.status === 'pending').length;
   const estimatedSavings = completed * 5 + 40; 
@@ -288,7 +288,7 @@ app.get('/api/stats', requireAuth, (req, res) => {
 // List Envelopes (Private to Logged-in Sender)
 app.get('/api/documents', requireAuth, (req, res) => {
   const db = getDatabase();
-  const userDocs = db.documents.filter(d => d.userId === req.user.id || (!d.userId && req.user.id === 'usr_default_rafael'));
+  const userDocs = db.documents.filter(d => d.userId === req.user.id || (!d.userId && req.user.id === 'usr_default_demo'));
   const list = userDocs.map(d => {
     const activeSigner = (d.signers && d.signers.find(s => s.status === 'pending')) || { name: d.recipientName, email: d.recipientEmail, status: d.status };
     const myTurn = d.signers && d.signers.some(s => s.status === 'pending' && s.isSender);
@@ -426,7 +426,7 @@ app.get('/api/documents/:id/pdf', async (req, res) => {
 // Clear All Documents for Current User
 app.delete('/api/documents', requireAuth, (req, res) => {
   const db = getDatabase();
-  db.documents = db.documents.filter(d => d.userId && d.userId !== req.user.id && (req.user.id !== 'usr_default_rafael' || d.userId));
+  db.documents = db.documents.filter(d => d.userId && d.userId !== req.user.id && (req.user.id !== 'usr_default_demo' || d.userId));
   saveDatabase(db);
   res.json({ success: true, message: 'All documents cleared' });
 });
@@ -477,8 +477,8 @@ app.post('/api/documents', requireAuth, (req, res) => {
   if (signMode === 'both') {
     normalizedSigners.push({
       id: 'signer_2',
-      name: (senderName || req.user.name || 'Rafael').trim(),
-      email: (senderEmail || req.user.email || 'rafael@opensign.local').trim(),
+      name: (senderName || req.user.name || 'Demo Sender').trim(),
+      email: (senderEmail || req.user.email || 'demo@opensign.local').trim(),
       role: 'Counter-Signer / Initiator',
       order: 2,
       isSender: true,
@@ -548,7 +548,7 @@ app.delete('/api/documents/:id', requireAuth, (req, res) => {
     return res.status(404).json({ error: 'Envelope not found' });
   }
   const doc = db.documents[index];
-  if (doc.userId && doc.userId !== req.user.id && req.user.id !== 'usr_default_rafael') {
+  if (doc.userId && doc.userId !== req.user.id && req.user.id !== 'usr_default_demo') {
     return res.status(403).json({ error: 'Unauthorized to delete this envelope' });
   }
   db.documents.splice(index, 1);

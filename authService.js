@@ -16,12 +16,12 @@ function hashPassword(password) {
 
 function getUsersDatabase() {
   if (!fs.existsSync(USERS_FILE)) {
-    // Seed initial default user for Rafael
+    // Seed initial default demo user
     const defaultUser = {
-      id: 'usr_default_rafael',
-      name: 'Rafael',
-      email: 'rafael@opensign.local',
-      passwordHash: hashPassword('password123'),
+      id: 'usr_default_demo',
+      name: 'Demo User',
+      email: 'demo@opensign.local',
+      passwordHash: hashPassword('demo123'),
       createdAt: new Date().toISOString()
     };
 
