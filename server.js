@@ -347,6 +347,21 @@ app.get('/api/documents/:id', (req, res) => {
     return res.status(404).json({ error: 'Envelope not found' });
   }
 
+  // Authorization check for protected envelopes
+  const authHeader = req.headers['authorization'];
+  let token = null;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.slice(7).trim();
+  } else if (req.query && req.query.token) {
+    token = req.query.token;
+  }
+  const requestingUser = authService.getUserByToken(token);
+  const isOwner = requestingUser && (requestingUser.id === doc.userId || requestingUser.id === 'usr_default_demo');
+
+  const providedPasscode = (req.query && req.query.passcode) || req.headers['x-passcode'] || '';
+  const isPasscodeValid = doc.accessCode ? providedPasscode.trim() === doc.accessCode : true;
+  const isAuthorized = isOwner || isPasscodeValid;
+
   // Record viewed event if pending
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
   const hasViewedLog = doc.auditLog.some(l => l.event === 'ENVELOPE_VIEWED' && l.ip === clientIp);
@@ -368,6 +383,13 @@ app.get('/api/documents/:id', (req, res) => {
   const myTurn = doc.signers && doc.signers.some(s => s.status === 'pending' && s.isSender);
   safeDoc.myTurn = !!myTurn;
   delete safeDoc.accessCode;
+
+  if (doc.accessCode && !isAuthorized) {
+    safeDoc.isLocked = true;
+    safeDoc.content = '🔒 This document is password protected by the sender. Enter the required access passcode to unlock and review.';
+    safeDoc.fields = (doc.fields || []).map(f => ({ ...f, value: undefined }));
+  }
+
   res.json(safeDoc);
 });
 
@@ -406,6 +428,26 @@ app.get('/api/documents/:id/pdf', async (req, res) => {
   const doc = db.documents.find(d => d.id === req.params.id);
   if (!doc) {
     return res.status(404).send('Document not found');
+  }
+
+  // Enforce passcode verification if envelope is protected
+  if (doc.accessCode) {
+    const authHeader = req.headers['authorization'];
+    let token = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.slice(7).trim();
+    } else if (req.query && req.query.token) {
+      token = req.query.token;
+    }
+    const requestingUser = authService.getUserByToken(token);
+    const isOwner = requestingUser && (requestingUser.id === doc.userId || requestingUser.id === 'usr_default_demo');
+
+    const providedPasscode = (req.query && req.query.passcode) || req.headers['x-passcode'] || '';
+    const isPasscodeValid = providedPasscode.trim() === doc.accessCode;
+
+    if (!isOwner && !isPasscodeValid) {
+      return res.status(401).send('Access passcode required to view or download this protected agreement.');
+    }
   }
 
   const safeFilename = (doc.title || 'Agreement')
@@ -1025,19 +1067,6 @@ app.post('/api/verify', async (req, res) => {
   });
 });
 
-// Delete Document
-app.delete('/api/documents/:id', (req, res) => {
-  const db = getDatabase();
-  const initialLen = db.documents.length;
-  db.documents = db.documents.filter(d => d.id !== req.params.id);
-
-  if (db.documents.length === initialLen) {
-    return res.status(404).json({ error: 'Envelope not found' });
-  }
-
-  saveDatabase(db);
-  res.json({ success: true, message: 'Envelope deleted' });
-});
 
 // Start Server
 app.listen(PORT, () => {

@@ -10,8 +10,24 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password + '_opensign_salt_2026').digest('hex');
+function hashPassword(password, salt) {
+  const userSalt = salt || crypto.randomBytes(16).toString('hex');
+  const derived = crypto.scryptSync(password, userSalt, 64);
+  return `scrypt:${userSalt}:${derived.toString('hex')}`;
+}
+
+function verifyPassword(password, storedHash) {
+  if (!storedHash) return false;
+  if (storedHash.startsWith('scrypt:')) {
+    const parts = storedHash.split(':');
+    const salt = parts[1];
+    const hash = parts[2];
+    const derived = crypto.scryptSync(password, salt, 64);
+    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), derived);
+  }
+  // Legacy SHA-256 fallback
+  const legacyHash = crypto.createHash('sha256').update(password + '_opensign_salt_2026').digest('hex');
+  return legacyHash === storedHash;
 }
 
 function getUsersDatabase() {
@@ -105,9 +121,13 @@ function loginUser(email, password) {
     throw new Error('Invalid email or password.');
   }
 
-  const inputHash = hashPassword(password);
-  if (user.passwordHash !== inputHash) {
+  if (!verifyPassword(password, user.passwordHash)) {
     throw new Error('Invalid email or password.');
+  }
+
+  // Seamlessly upgrade legacy SHA-256 hash to scrypt
+  if (!user.passwordHash.startsWith('scrypt:')) {
+    user.passwordHash = hashPassword(password);
   }
 
   const token = 'tok_' + crypto.randomBytes(24).toString('hex');

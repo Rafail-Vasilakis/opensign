@@ -48,7 +48,8 @@ function resolveDocumentId() {
 
 async function loadDocument() {
   try {
-    const res = await fetch(`/api/documents/${documentId}`);
+    const url = `/api/documents/${documentId}${verifiedPasscode ? `?passcode=${encodeURIComponent(verifiedPasscode)}` : ''}`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Envelope not found or link expired.');
     docData = await res.json();
 
@@ -257,7 +258,7 @@ async function submitPasscodeGate() {
 
     verifiedPasscode = code;
     showPasscodeGate(false);
-    await continueDocumentRender();
+    await loadDocument();
   } catch (err) {
     if (errorEl) {
       errorEl.textContent = err.message;
@@ -272,7 +273,8 @@ async function renderCustomPdfViewer(container) {
   container.innerHTML = '<p class="text-xs text-slate-500 py-6">Loading PDF document pages...</p>';
 
   try {
-    const loadingTask = pdfjsLib.getDocument(`/api/documents/${documentId}/pdf`);
+    const pdfUrl = `/api/documents/${documentId}/pdf${verifiedPasscode ? `?passcode=${encodeURIComponent(verifiedPasscode)}` : ''}`;
+    const loadingTask = pdfjsLib.getDocument(pdfUrl);
     const pdf = await loadingTask.promise;
     container.innerHTML = '';
 
@@ -820,7 +822,7 @@ async function submitFinalSignature() {
 
     const pdfBtn = document.getElementById('download-official-pdf-btn');
     if (pdfBtn) {
-      pdfBtn.href = `/api/documents/${documentId}/pdf`;
+      pdfBtn.href = `/api/documents/${documentId}/pdf${verifiedPasscode ? `?passcode=${encodeURIComponent(verifiedPasscode)}` : ''}`;
       const safeTitle = (docData.title || 'Agreement').replace(/[^a-zA-Z0-9_-]/g, '_');
       pdfBtn.setAttribute('download', `${safeTitle}_Signed.pdf`);
     }

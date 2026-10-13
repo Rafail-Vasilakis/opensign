@@ -48,6 +48,16 @@ function getSenderAddress() {
   return process.env.SMTP_FROM || '"OpenSign Core" <no-reply@opensign.local>';
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /**
  * Send Invitation to Sign (Primary Recipient)
  */
@@ -77,13 +87,13 @@ async function sendSignatureInvitation(doc, signer, reqHost) {
         <div style="padding: 32px;">
           <h2 style="font-size: 18px; color: #0f172a; margin: 0 0 12px 0;">Please Review & Sign</h2>
           <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
-            Hello <strong>${signer.name}</strong>,<br>
+            Hello <strong>${escapeHtml(signer.name)}</strong>,<br>
             You have received an electronic agreement to review and execute:
           </p>
 
           <div style="background: #f1f5f9; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
-            <p style="margin: 0; font-size: 15px; font-weight: 600; color: #1e293b;">${doc.title}</p>
-            <p style="margin: 4px 0 0 0; font-size: 12px; font-family: monospace; color: #64748b;">Envelope ID: ${doc.id}</p>
+            <p style="margin: 0; font-size: 15px; font-weight: 600; color: #1e293b;">${escapeHtml(doc.title)}</p>
+            <p style="margin: 4px 0 0 0; font-size: 12px; font-family: monospace; color: #64748b;">Envelope ID: ${escapeHtml(doc.id)}</p>
           </div>
 
           <!-- DocuSign-Style Action Button -->
@@ -142,8 +152,8 @@ async function sendCounterSignInvitation(doc, signer, reqHost) {
         <!-- Body -->
         <div style="padding: 32px;">
           <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
-            Hello <strong>${signer.name}</strong>,<br>
-            The primary signer has completed their signature on <strong>${doc.title}</strong>. It is now your turn to review and apply your counter-signature to finalize and seal the agreement.
+            Hello <strong>${escapeHtml(signer.name)}</strong>,<br>
+            The primary signer has completed their signature on <strong>${escapeHtml(doc.title)}</strong>. It is now your turn to review and apply your counter-signature to finalize and seal the agreement.
           </p>
 
           <div style="text-align: center; margin: 32px 0;">
@@ -195,7 +205,7 @@ async function sendCompletionEmail(doc, pdfBuffer, reqHost) {
         <!-- Body -->
         <div style="padding: 32px;">
           <p style="color: #475569; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
-            All parties have electronically executed <strong>${doc.title}</strong>. A copy of the legally sealed document and the official Certificate of Completion is attached to this email for your records.
+            All parties have electronically executed <strong>${escapeHtml(doc.title)}</strong>. A copy of the legally sealed document and the official Certificate of Completion is attached to this email for your records.
           </p>
 
           <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
