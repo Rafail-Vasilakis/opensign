@@ -35,7 +35,7 @@ However, the audit confirmed **one High-Severity authorization bypass** in the r
 
 ### 1. [OPENSIGN-SEC-001] Passcode Protection Bypass via Direct Endpoints
 - **Severity:** **HIGH** (Likelihood: High | Impact: High)
-- **Vulnerable Files:** [`server.js:343-372`](file:///C:/Users/rafae/.gemini/antigravity/scratch/opensign/server.js#L343-L372), [`server.js:404-435`](file:///C:/Users/rafae/.gemini/antigravity/scratch/opensign/server.js#L404-L435)
+- **Vulnerable Files:** `server.js#L343-L372`, `server.js#L404-435`
 - **Description:**  
   When an envelope is protected with a sender-specified access PIN (`doc.accessCode`), the client-side UI (`public/sign.js`) prompts the user for a PIN before rendering the document. However:
   1. `GET /api/documents/:id` sends the entire `doc.content` (the full legal agreement text), recipient emails, and audit log to the browser before the PIN is entered. Only the `accessCode` attribute was deleted from the returned JSON.
@@ -55,7 +55,7 @@ However, the audit confirmed **one High-Severity authorization bypass** in the r
 
 ### 2. [OPENSIGN-SEC-002] Weak Password Storage with Static Salt
 - **Severity:** **MEDIUM** (Likelihood: Low | Impact: High)
-- **Vulnerable File:** [`authService.js:13-15`](file:///C:/Users/rafae/.gemini/antigravity/scratch/opensign/authService.js#L13-L15)
+- **Vulnerable File:** `authService.js#L13-L15`
 - **Description:**  
   `authService.js` hashes passwords with single-iteration SHA-256 and a static salt string (`_opensign_salt_2026`). Single SHA-256 has zero memory hardness and can be computed at billions of hashes per second using standard GPUs if `data/users.json` is exposed.
 - **Remediation:**  
@@ -65,7 +65,7 @@ However, the audit confirmed **one High-Severity authorization bypass** in the r
 
 ### 3. [OPENSIGN-SEC-003] HTML Injection in Email Notification Templates
 - **Severity:** **LOW** (Likelihood: Medium | Impact: Low)
-- **Vulnerable File:** [`emailService.js:80-87`](file:///C:/Users/rafae/.gemini/antigravity/scratch/opensign/emailService.js#L80-L87)
+- **Vulnerable File:** `emailService.js#L80-87`
 - **Description:**  
   User-supplied parameters `signer.name` and `doc.title` are interpolated directly into HTML email strings (`Hello <strong>${signer.name}</strong>`) without HTML entity escaping. A sender could craft a document title containing HTML markup to inject unauthorized styling or buttons into recipient inboxes.
 - **Remediation:**  
@@ -75,7 +75,7 @@ However, the audit confirmed **one High-Severity authorization bypass** in the r
 
 ### 4. [OPENSIGN-SEC-004] Duplicate Shadowed Document Deletion Route
 - **Severity:** **LOW** (Likelihood: Low | Impact: Medium)
-- **Vulnerable File:** [`server.js:1029`](file:///C:/Users/rafae/.gemini/antigravity/scratch/opensign/server.js#L1029)
+- **Vulnerable File:** `server.js#L1029`
 - **Description:**  
   A second `app.delete('/api/documents/:id')` route handler exists without `requireAuth`. While currently shadowed by line 568, having duplicate handlers creates latent security risks during refactoring.
 - **Remediation:**  
