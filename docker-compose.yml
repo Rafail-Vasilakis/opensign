@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  opensign:
+    build: .
+    container_name: opensign_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000

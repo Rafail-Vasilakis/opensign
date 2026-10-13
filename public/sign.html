@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Review & Sign Document — OpenSign</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts for Cursive Signatures & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Dancing+Script:wght@700&family=Great+Vibes&family=Inter:wght@300;400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Mozilla PDF.js for uploaded PDFs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    /* DocuSign-style bouncing yellow tag */
+    @keyframes pulse-yellow {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); }
+      50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(234, 179, 8, 0); }
+    }
+    .docusign-tag {
+      animation: pulse-yellow 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col font-['Inter'] antialiased">
+
+  <!-- Floating Sticky Action Bar (Trademark DocuSign Flow) -->
+  <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-lg no-print">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
+          <i data-lucide="file-signature" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 id="top-doc-title" class="text-sm font-bold tracking-tight text-white">Document Review</h1>
+          <p id="top-signer-info" class="text-[11px] text-slate-400">Loading signer details...</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons (DocuSign Guided Navigation) -->
+      <div class="flex items-center space-x-3">
+        <button id="guided-nav-btn" onclick="handleGuidedNavClick()" class="inline-flex items-center px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-lg text-sm font-bold shadow-md transition-all active:scale-95">
+          <i data-lucide="arrow-down-circle" class="w-4 h-4 mr-1.5"></i>
+          <span id="guided-nav-text">START</span>
+        </button>
+        <button id="finish-btn" onclick="submitFinalSignature()" class="hidden inline-flex items-center px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg text-sm font-bold shadow-md transition-all active:scale-95 ring-2 ring-emerald-300">
+          <i data-lucide="check-circle" class="w-4 h-4 mr-1.5"></i>
+          FINISH
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Legal Notice Ribbon -->
+  <div class="bg-amber-50 border-b border-amber-200 py-2.5 px-4 text-center text-xs text-amber-900 no-print flex items-center justify-center space-x-2">
+    <i data-lucide="info" class="w-4 h-4 text-amber-600"></i>
+    <span>Please review the document below. When ready, click the yellow <strong>SIGN</strong> tag to execute.</span>
+  </div>
+
+  <!-- Document Paper Container -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
+    <div class="document-paper rounded-xl p-8 sm:p-14 border border-slate-200 bg-white relative shadow-md">
+      
+      <!-- Document Header -->
+      <div class="flex items-center justify-between border-b border-slate-200 pb-6 mb-8">
+        <div>
+          <h2 id="paper-doc-title" class="text-2xl font-bold text-slate-900 tracking-tight">Agreement</h2>
+          <p id="paper-doc-id" class="text-xs text-slate-500 mt-1 font-mono">Envelope ID: --</p>
+        </div>
+        <div id="paper-status-tag" class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+          Awaiting Execution
+        </div>
+      </div>
+
+      <!-- Document Content (Standard Templates) -->
+      <div id="paper-content" class="text-slate-800 text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-serif">
+        Loading agreement...
+      </div>
+
+      <!-- Custom Uploaded PDF Render Container -->
+      <div id="pdf-custom-render-container" class="hidden flex flex-col items-center space-y-4"></div>
+
+      <!-- Execution Section (DocuSign Style Tag) -->
+      <div id="signature-target-slot" class="mt-14 pt-8 border-t-2 border-slate-200">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Execution & Signature</h3>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+          <!-- Initiator Box -->
+          <div id="initiator-box" class="p-5 rounded-xl border border-slate-200 bg-slate-50/60">
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Company / Initiator</p>
+            <p class="text-sm font-bold text-slate-800">OpenSign Core System</p>
+            <div class="mt-4 pt-3 border-t border-slate-200 flex items-center text-xs text-slate-500">
+              <i data-lucide="shield-check" class="w-4 h-4 mr-1.5 text-indigo-500"></i>
+              Pre-authorized and sealed
+            </div>
+          </div>
+
+          <!-- The Recipient Signature Slot -->
+          <div id="signer-action-box" class="p-6 rounded-xl border-2 border-amber-300 bg-amber-50/50 relative flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Required Signer</span>
+                <span class="text-[10px] bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded">ACTION NEEDED</span>
+              </div>
+              <p id="signer-box-name" class="text-sm font-bold text-slate-900">Signer Name</p>
+              <p id="signer-box-email" class="text-xs text-slate-500">signer@example.com</p>
+            </div>
+
+            <!-- The DocuSign Click-to-Sign Tag -->
+            <div class="mt-6 flex justify-center">
+              <button id="docusign-sign-trigger" onclick="openSignatureModal()" class="docusign-tag cursor-pointer bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold px-6 py-3 rounded-lg text-sm shadow-md flex items-center space-x-2 border-2 border-amber-500 transition-all">
+                <i data-lucide="pen-tool" class="w-4 h-4 text-slate-900"></i>
+                <span>SIGN HERE</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Certificate of Completion (Visible After Signing) -->
+    <div id="completed-certificate-paper" class="hidden mt-8 bg-white rounded-xl p-8 sm:p-12 border border-slate-200 shadow-md">
+      <div class="flex items-start justify-between border-b border-slate-200 pb-5 mb-6">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i data-lucide="award" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-slate-900">Official Certificate of Completion</h3>
+            <p class="text-xs text-slate-500">ESIGN Act (15 U.S.C. § 7001) Compliant Audit Trail</p>
+          </div>
+        </div>
+        <span id="completed-cert-id" class="text-xs font-mono bg-slate-100 text-slate-700 px-3 py-1 rounded border border-slate-200">CERT-ID</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div class="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+          <div>
+            <span class="text-slate-400 font-medium block">Pre-Sign SHA-256 Digest:</span>
+            <span id="completed-pre-hash" class="font-mono text-slate-700 break-all">--</span>
+          </div>
+          <div>
+            <span class="text-slate-400 font-medium block">Post-Sign Sealed SHA-256 Digest:</span>
+            <span id="completed-post-hash" class="font-mono text-emerald-700 font-bold break-all">--</span>
+          </div>
+        </div>
+        <div class="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+          <div>
+            <span class="text-slate-400 font-medium block">Signer Electronic Verification:</span>
+            <span id="completed-signer-details" class="font-bold text-slate-800">--</span>
+          </div>
+          <div>
+            <span class="text-slate-400 font-medium block">Execution Timestamp (UTC):</span>
+            <span id="completed-time" class="font-mono text-slate-700">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL: ADOPT SIGNATURE (EXACT DOCUSIGN ADOPTION) -->
+  <div id="sig-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="pen-tool" class="w-5 h-5 text-indigo-600"></i>
+          <h3 class="text-base font-bold text-slate-900">Adopt Your Signature</h3>
+        </div>
+        <button onclick="closeSignatureModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <!-- Tabs -->
+        <div class="flex border-b border-slate-200">
+          <button id="modal-tab-draw" onclick="switchTab('draw')" class="pb-2.5 px-4 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600">
+            Draw
+          </button>
+          <button id="modal-tab-type" onclick="switchTab('type')" class="pb-2.5 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700">
+            Type
+          </button>
+        </div>
+
+        <!-- Draw Pane -->
+        <div id="pane-draw" class="space-y-3">
+          <div class="border-2 border-dashed border-slate-300 rounded-xl relative bg-white overflow-hidden">
+            <canvas id="signer-canvas" width="500" height="180" class="w-full h-44 cursor-crosshair"></canvas>
+            <button onclick="clearSignerCanvas()" class="absolute top-2 right-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded font-medium">
+              Clear
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-400">Use your mouse, finger, or stylus to draw your legal signature.</p>
+        </div>
+
+        <!-- Type Pane -->
+        <div id="pane-type" class="space-y-4 hidden">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Full Legal Name</label>
+            <input type="text" id="signer-input-name" oninput="renderCursivePreviews()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div class="grid grid-cols-2 gap-3" id="cursive-options-container">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- Consent Checkbox -->
+        <div class="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 flex items-start space-x-2.5">
+          <input type="checkbox" id="signer-consent-checkbox" class="mt-0.5 rounded text-indigo-600">
+          <label for="signer-consent-checkbox" class="cursor-pointer select-none">
+            I agree that my electronic signature constitutes a legally binding acceptance under the <strong>ESIGN Act</strong> and <strong>UETA</strong>.
+          </label>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-3">
+        <button onclick="closeSignatureModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 hover:bg-slate-100">Cancel</button>
+        <button onclick="adoptSignature()" class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-sm flex items-center">
+          <i data-lucide="check" class="w-4 h-4 mr-1.5"></i>
+          Adopt and Apply
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADOPT INITIALS -->
+  <div id="initials-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
+          <h3 class="text-base font-bold text-slate-900">Adopt Your Initials</h3>
+        </div>
+        <button onclick="closeInitialsModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Initials (1-4 Characters)</label>
+          <input type="text" id="initials-input-chars" maxlength="4" oninput="renderInitialsPreviews()" class="w-full uppercase font-bold tracking-widest text-lg border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+        </div>
+        <div class="grid grid-cols-2 gap-3" id="initials-options-container">
+          <!-- Populated via JS -->
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-3">
+        <button onclick="closeInitialsModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-700 hover:bg-slate-100">Cancel</button>
+        <button onclick="adoptInitials()" class="px-5 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 shadow-sm flex items-center">
+          <i data-lucide="check" class="w-4 h-4 mr-1.5"></i>
+          Adopt Initials
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SUCCESS / ALL DONE (EXACT DOCUSIGN FINISH SCREEN) -->
+  <div id="finish-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 text-center p-8 space-y-5">
+      <div class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center">
+        <i data-lucide="check-circle-2" class="w-8 h-8"></i>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold text-slate-900">You're All Done!</h3>
+        <p class="text-xs text-slate-500 mt-1">Thank you. The document has been electronically executed and cryptographically sealed.</p>
+      </div>
+      <div class="pt-2 flex flex-col space-y-2.5">
+        <a id="download-official-pdf-btn" href="#" download class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg text-sm shadow-sm flex items-center justify-center transition-colors">
+          <i data-lucide="file-down" class="w-4 h-4 mr-2"></i>
+          Download Official Vector PDF
+        </a>
+        <button onclick="window.close()" class="w-full py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+          Close Window
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECURITY GATE MODAL: PASSCODE REQUIRED -->
+  <div id="passcode-gate-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden text-center p-8 space-y-5">
+      <div class="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 mx-auto flex items-center justify-center shadow-inner">
+        <i data-lucide="lock" class="w-8 h-8"></i>
+      </div>
+      <div>
+        <h3 class="text-xl font-bold text-slate-900">Protected Document</h3>
+        <p class="text-xs text-slate-500 mt-1 max-w-xs mx-auto">This envelope is secured with an access passcode by the sender. Enter the code to view and sign.</p>
+      </div>
+
+      <div class="space-y-3">
+        <input type="password" id="gate-passcode-input" placeholder="Enter Access Passcode" onkeydown="if(event.key==='Enter') submitPasscodeGate()" class="w-full border-2 border-slate-300 focus:border-indigo-600 rounded-xl px-4 py-3 text-center text-sm font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+        <p id="gate-error-msg" class="hidden text-xs text-red-600 font-semibold"></p>
+        <button id="gate-unlock-btn" onclick="submitPasscodeGate()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center">
+          <i data-lucide="key-round" class="w-4 h-4 mr-1.5"></i>
+          Unlock Document
+        </button>
+      </div>
+
+      <p class="text-[10px] text-slate-400">If you do not have the passcode, please contact the sender.</p>
+    </div>
+  </div>
+
+  <script src="/sign.js"></script>
+</body>
+</html>

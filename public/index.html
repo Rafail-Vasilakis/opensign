@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenSign — Free, Open Source DocuSign Alternative</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts for Cursive Signatures & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Dancing+Script:wght@700&family=Great+Vibes&family=Inter:wght@300;400;500;600;700&family=Pacifico&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-['Inter'] antialiased">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="showDashboard()">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+          <i data-lucide="file-signature" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-xl tracking-tight text-slate-900">Open<span class="text-indigo-600">Sign</span></span>
+            <span class="bg-emerald-50 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-medium border border-emerald-200">Free & OSS</span>
+          </div>
+          <p class="text-[11px] text-slate-500 hidden sm:block">Self-hosted DocuSign alternative • ESIGN compliant</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <a href="/verify" class="inline-flex items-center px-3.5 py-2 border border-slate-200 text-sm font-semibold rounded-lg text-slate-700 bg-white hover:bg-slate-50 shadow-sm transition-colors">
+          <i data-lucide="shield-check" class="w-4 h-4 mr-1.5 text-emerald-600"></i>
+          Verify Document
+        </a>
+        <button onclick="showCreateModal()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          <i data-lucide="plus" class="w-4 h-4 mr-1.5"></i>
+          New Envelope
+        </button>
+        <div id="nav-auth-container" class="flex items-center pl-2 border-l border-slate-200">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- VIEW 1: DASHBOARD -->
+    <div id="dashboard-view" class="space-y-8">
+      <!-- Value Proposition / Metrics Banner -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+            <i data-lucide="files" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Envelopes</p>
+            <h3 id="stat-total" class="text-2xl font-bold text-slate-900 mt-0.5">0</h3>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Signed & Sealed</p>
+            <h3 id="stat-completed" class="text-2xl font-bold text-slate-900 mt-0.5">0</h3>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <i data-lucide="clock" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Pending Signature</p>
+            <h3 id="stat-pending" class="text-2xl font-bold text-slate-900 mt-0.5">0</h3>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+            <i data-lucide="badge-dollar-sign" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Saved vs DocuSign</p>
+            <h3 id="stat-saved" class="text-2xl font-bold text-purple-600 mt-0.5">$0</h3>
+          </div>
+        </div>
+      </div>
+
+      <!-- Envelopes Table Section -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Envelopes & Agreements</h2>
+            <p class="text-xs text-slate-500 mt-0.5">All electronic documents secured with SHA-256 audit trails</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="clearAllDocuments()" class="px-2.5 py-1 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200" title="Delete all documents">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5 inline mr-1"></i> Clear All
+            </button>
+            <button onclick="fetchDocuments()" class="p-2 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors" title="Refresh">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50/75 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                <th class="px-6 py-3.5">Document Title</th>
+                <th class="px-6 py-3.5">Recipient</th>
+                <th class="px-6 py-3.5">Status</th>
+                <th class="px-6 py-3.5">Created</th>
+                <th class="px-6 py-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="documents-table-body" class="divide-y divide-slate-100 text-sm">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: DOCUMENT VIEWER & SIGNING WORKSPACE -->
+    <div id="viewer-view" class="hidden space-y-6">
+      <!-- Viewer Top Action Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm no-print">
+        <button onclick="showDashboard()" class="inline-flex items-center text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+          <i data-lucide="arrow-left" class="w-4 h-4 mr-1.5"></i>
+          Back to Dashboard
+        </button>
+
+        <div class="flex items-center space-x-3">
+          <button onclick="downloadOfficialPDF()" class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm">
+            <i data-lucide="file-down" class="w-4 h-4 mr-2"></i>
+            Download Official PDF
+          </button>
+          <button onclick="window.print()" class="inline-flex items-center px-3 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 transition-colors shadow-sm" title="Print page">
+            <i data-lucide="printer" class="w-4 h-4 text-slate-500"></i>
+          </button>
+          <div id="sign-action-container">
+            <!-- Dynamic button (Sign Now or Already Signed) -->
+          </div>
+        </div>
+      </div>
+
+      <!-- The Physical Legal Document Paper -->
+      <div class="document-paper max-w-4xl mx-auto rounded-xl p-8 sm:p-14 border border-slate-200 relative bg-white">
+        <!-- Document Watermark Header -->
+        <div class="flex items-center justify-between border-b border-slate-200 pb-6 mb-8">
+          <div>
+            <h1 id="doc-view-title" class="text-2xl font-bold text-slate-900 tracking-tight">Agreement</h1>
+            <p id="doc-view-meta" class="text-xs text-slate-500 mt-1">Document ID: <span class="font-mono">--</span></p>
+          </div>
+          <div id="doc-view-status-badge">
+            <!-- Status Badge -->
+          </div>
+        </div>
+
+        <!-- Document Body Content -->
+        <div id="doc-view-content" class="text-slate-800 text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-serif">
+          <!-- Text loaded dynamically -->
+        </div>
+
+        <!-- Legal Signature Section -->
+        <div class="mt-14 pt-8 border-t-2 border-slate-200">
+          <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">Electronic Execution & Attestation</h3>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+            <!-- Company / Initiator placeholder -->
+            <div class="p-5 rounded-xl border border-dashed border-slate-200 bg-slate-50/50">
+              <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Initiated By</p>
+              <p class="text-sm font-bold text-slate-800">OpenSign Core System</p>
+              <div class="mt-4 pt-4 border-t border-slate-200 flex items-center text-xs text-slate-500">
+                <i data-lucide="shield-check" class="w-4 h-4 mr-1.5 text-indigo-500"></i>
+                Digitally Anchored Envelope
+              </div>
+            </div>
+
+            <!-- Signer Slot -->
+            <div id="signer-execution-card" class="p-5 rounded-xl border transition-all">
+              <!-- Dynamically populated: Either "Click to Sign" or the Verified Signature -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attached Certificate of Completion (Audit Trail) -->
+      <div id="audit-certificate-container" class="max-w-4xl mx-auto bg-white rounded-xl p-8 sm:p-12 border border-slate-200 shadow-sm audit-certificate-paper">
+        <div class="flex items-start justify-between border-b border-slate-200 pb-5 mb-6">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <i data-lucide="award" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <h2 class="text-lg font-bold text-slate-900">Certificate of Completion & Audit Trail</h2>
+              <p class="text-xs text-slate-500">Tamper-evident electronic record pursuant to ESIGN Act (15 U.S.C. § 7001)</p>
+            </div>
+          </div>
+          <span class="text-xs font-mono bg-slate-100 text-slate-700 px-2.5 py-1 rounded border border-slate-200" id="cert-id-badge">CERT-PENDING</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs mb-8">
+          <div class="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div>
+              <span class="text-slate-400 font-medium block">Pre-Sign SHA-256 Digest:</span>
+              <span id="audit-pre-hash" class="font-mono text-slate-700 break-all select-all font-semibold">--</span>
+            </div>
+            <div>
+              <span class="text-slate-400 font-medium block">Post-Sign Sealed SHA-256 Digest:</span>
+              <span id="audit-post-hash" class="font-mono text-emerald-700 break-all select-all font-semibold">--</span>
+            </div>
+          </div>
+
+          <div class="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+            <div>
+              <span class="text-slate-400 font-medium block">Designated Signer:</span>
+              <span id="audit-signer-name" class="font-semibold text-slate-800">--</span>
+              <span id="audit-signer-email" class="text-slate-500 block">--</span>
+            </div>
+            <div>
+              <span class="text-slate-400 font-medium block">Execution Timestamp (UTC):</span>
+              <span id="audit-timestamp" class="font-mono text-slate-700">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audit Event History -->
+        <div>
+          <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Cryptographic Event History</h4>
+          <div id="audit-timeline" class="space-y-3 border-l-2 border-indigo-200 pl-4 text-xs">
+            <!-- Dynamically populated logs -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL 1: CREATE NEW ENVELOPE -->
+  <div id="create-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-bold text-slate-900">Create New Envelope</h3>
+          <p class="text-xs text-slate-500">Pick a legal template or upload your own PDF agreement</p>
+        </div>
+        <button onclick="hideCreateModal()" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Tabs: Template vs Custom PDF -->
+      <div class="flex border-b border-slate-200 px-6 pt-3 bg-slate-50/50">
+        <button id="tab-tmpl-btn" onclick="switchCreateModalTab('template')" class="pb-3 px-4 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 transition-colors flex items-center">
+          <i data-lucide="file-text" class="w-3.5 h-3.5 mr-1.5"></i>
+          Use Legal Template
+        </button>
+        <button id="tab-pdf-btn" onclick="switchCreateModalTab('pdf')" class="pb-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-colors flex items-center">
+          <i data-lucide="file-up" class="w-3.5 h-3.5 mr-1.5 text-indigo-500"></i>
+          Upload Custom PDF (Drag & Drop)
+        </button>
+      </div>
+
+      <!-- TAB 1: STANDARD TEMPLATE FORM -->
+      <div id="pane-template-content" class="p-6 overflow-y-auto space-y-5">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Select Template</label>
+          <select id="new-template-select" onchange="onTemplateChange()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">Custom Agreement (Blank)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Agreement Title</label>
+          <input type="text" id="new-doc-title" placeholder="e.g. Consulting Agreement 2026" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Who Needs to Sign (DocuSign Mode Selector) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Who needs to sign?</label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label id="mode-others-label" class="flex items-start p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50/50 cursor-pointer transition-all">
+              <input type="radio" name="signModeRadio" value="others" checked onchange="onSignModeChange('others')" class="mt-0.5 text-indigo-600 focus:ring-indigo-500">
+              <div class="ml-2.5">
+                <p class="text-xs font-bold text-slate-900">Only Others</p>
+                <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Recipient signs and document is sealed.</p>
+              </div>
+            </label>
+            <label id="mode-both-label" class="flex items-start p-3 rounded-xl border-2 border-slate-200 hover:border-slate-300 bg-white cursor-pointer transition-all">
+              <input type="radio" name="signModeRadio" value="both" onchange="onSignModeChange('both')" class="mt-0.5 text-indigo-600 focus:ring-indigo-500">
+              <div class="ml-2.5">
+                <p class="text-xs font-bold text-slate-900">Me and Others (Counter-Sign)</p>
+                <p class="text-[10px] text-slate-500 leading-tight mt-0.5">Recipient signs first, then routes to you for counter-signature.</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Counter-Signer (You) Details (Shown when 'both' is selected) -->
+        <div id="counter-signer-card" class="hidden p-3.5 bg-indigo-50/70 rounded-xl border border-indigo-200 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-indigo-900 flex items-center">
+              <i data-lucide="user-check" class="w-3.5 h-3.5 text-indigo-600 mr-1.5"></i>
+              Your Counter-Signature Details (Signer 2)
+            </span>
+            <span class="text-[10px] bg-indigo-200 text-indigo-800 font-bold px-2 py-0.5 rounded">COUNTER-SIGNER</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 uppercase">Your Name</label>
+              <input type="text" id="sender-name-input" value="Rafael (Sender)" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-indigo-500">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold text-slate-600 uppercase">Your Email</label>
+              <input type="email" id="sender-email-input" value="rafael@opensign.local" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-indigo-500">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Signer 1 Full Name (Recipient) *</label>
+            <input type="text" id="new-recipient-name" placeholder="Jane Doe" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Signer Email *</label>
+            <input type="email" id="new-recipient-email" placeholder="jane@example.com" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Agreement Text</label>
+          <textarea id="new-doc-content" rows="5" class="w-full font-mono text-xs border border-slate-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Paste contract content here..."></textarea>
+        </div>
+
+        <!-- Security Access Code / Passcode Protection -->
+        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-bold text-slate-700 flex items-center">
+              <i data-lucide="lock" class="w-3.5 h-3.5 text-indigo-600 mr-1.5"></i>
+              Password Protection (Access Code)
+            </label>
+            <span class="text-[10px] text-slate-400 font-semibold uppercase">Optional</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mb-2">Recipient must enter this passcode before opening and signing.</p>
+          <input type="text" id="new-access-code" placeholder="Leave blank for open link or enter e.g. 1234 / SecretPass" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="pt-2 flex justify-end space-x-3">
+          <button onclick="hideCreateModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors">Cancel</button>
+          <button onclick="submitNewDocument()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">Create Envelope</button>
+        </div>
+      </div>
+
+      <!-- TAB 2: UPLOAD CUSTOM PDF & MULTI-SIGNER FORM -->
+      <div id="pane-pdf-content" class="hidden p-6 overflow-y-auto space-y-5">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Upload Your PDF Document *</label>
+          <div id="pdf-dropzone" class="border-2 border-dashed border-slate-300 hover:border-indigo-500 bg-slate-50 hover:bg-indigo-50/40 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2 group">
+            <input type="file" id="custom-pdf-upload" accept="application/pdf" class="hidden" onchange="handleFileSelection(event)">
+            <div id="dropzone-idle" class="flex flex-col items-center pointer-events-none">
+              <div class="w-12 h-12 rounded-xl bg-indigo-100 group-hover:bg-indigo-200 text-indigo-600 flex items-center justify-center mb-2 transition-colors">
+                <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+              </div>
+              <p class="text-sm font-semibold text-slate-700">Click to upload or drag & drop</p>
+              <p class="text-xs text-slate-400 mt-0.5">PDF agreements, NDAs, leases, invoices (up to 15MB)</p>
+            </div>
+            <div id="dropzone-selected" class="hidden flex items-center space-x-3 bg-white p-3 rounded-xl border border-emerald-300 w-full max-w-md shadow-sm">
+              <div class="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                <i data-lucide="file-check" class="w-5 h-5"></i>
+              </div>
+              <div class="flex-1 text-left truncate">
+                <p id="selected-filename" class="text-xs font-bold text-slate-800 truncate">document.pdf</p>
+                <p id="selected-filesize" class="text-[10px] text-slate-400">0 KB</p>
+              </div>
+              <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">Ready</span>
+            </div>
+          </div>
+          <p id="pdf-upload-error" class="hidden text-xs text-red-600 font-semibold mt-1.5 flex items-center">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5 mr-1"></i> Please select or drop a PDF file first.
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Agreement Title</label>
+          <input type="text" id="custom-pdf-title" placeholder="e.g. Master Services Agreement 2026" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Security Access Code for Custom PDF -->
+        <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-bold text-slate-700 flex items-center">
+              <i data-lucide="lock" class="w-3.5 h-3.5 text-indigo-600 mr-1.5"></i>
+              Password Protection (Access Code)
+            </label>
+            <span class="text-[10px] text-slate-400 font-semibold uppercase">Optional</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mb-2">Recipients must enter this passcode before opening and signing.</p>
+          <input type="text" id="custom-access-code" placeholder="Leave blank for open link or enter e.g. 1234 / SecretPass" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <!-- Sequential Multi-Signers Roster -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <div>
+              <label class="text-xs font-bold text-slate-600 uppercase tracking-wider block">Signing Sequence (Multi-Signer)</label>
+              <p class="text-[11px] text-slate-400">Recipients will sign in this exact order automatically</p>
+            </div>
+            <button type="button" onclick="addSignerField()" class="text-xs text-indigo-600 font-bold hover:text-indigo-800 flex items-center bg-indigo-50 px-2.5 py-1 rounded-lg transition-colors">
+              <i data-lucide="plus" class="w-3.5 h-3.5 mr-0.5"></i> Add Signer
+            </button>
+          </div>
+          
+          <div id="signers-roster-list" class="space-y-3">
+            <!-- Signer 1 (Default) -->
+            <div class="signer-entry p-3.5 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-2.5 relative">
+              <div>
+                <label class="text-[10px] font-bold text-slate-500 uppercase">Signer 1 Name *</label>
+                <input type="text" class="signer-name w-full border border-slate-300 rounded-md px-2 py-1 text-xs focus:ring-indigo-500" placeholder="Nikos Papadopoulos" required>
+              </div>
+              <div>
+                <label class="text-[10px] font-bold text-slate-500 uppercase">Email *</label>
+                <input type="email" class="signer-email w-full border border-slate-300 rounded-md px-2 py-1 text-xs focus:ring-indigo-500" placeholder="nikos@example.com" required>
+              </div>
+              <div>
+                <label class="text-[10px] font-bold text-slate-500 uppercase">Role</label>
+                <input type="text" class="signer-role w-full border border-slate-300 rounded-md px-2 py-1 text-xs focus:ring-indigo-500" placeholder="Client">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 flex justify-end space-x-3">
+          <button onclick="hideCreateModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors">Cancel</button>
+          <button onclick="launchStudioWithUploadedPdf()" class="px-5 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm flex items-center">
+            <span>Next: Place Fields (Drag & Drop)</span>
+            <i data-lucide="arrow-right" class="w-4 h-4 ml-1.5"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: SIGNATURE SUITE (DOCUSIGN-GRADE SIGNING) -->
+  <div id="signature-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="pen-tool" class="w-5 h-5 text-indigo-600"></i>
+          <h3 class="text-base font-bold text-slate-900">Adopt Your Electronic Signature</h3>
+        </div>
+        <button onclick="hideSignatureModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <!-- Tabs: Draw vs Type -->
+        <div class="flex border-b border-slate-200">
+          <button id="tab-draw-btn" onclick="switchSignatureTab('draw')" class="pb-2.5 px-4 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition-colors">
+            Draw Signature
+          </button>
+          <button id="tab-type-btn" onclick="switchSignatureTab('type')" class="pb-2.5 px-4 text-sm font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition-colors">
+            Type Signature
+          </button>
+        </div>
+
+        <!-- TAB CONTENT 1: DRAW -->
+        <div id="sig-draw-pane" class="space-y-3">
+          <div class="border-2 border-dashed border-slate-300 rounded-xl relative bg-slate-50 overflow-hidden">
+            <canvas id="sig-canvas" width="500" height="180" class="w-full h-44 bg-white"></canvas>
+            <div class="absolute bottom-2 left-3 text-[10px] text-slate-400 select-none pointer-events-none">
+              Sign above using mouse or touch
+            </div>
+            <button onclick="clearCanvas()" class="absolute top-2 right-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded transition-colors font-medium">
+              Clear
+            </button>
+          </div>
+          <div class="flex items-center justify-between text-xs text-slate-500">
+            <span>Color: Navy Ink</span>
+            <span>Smooth Bézier curves enabled</span>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 2: TYPE -->
+        <div id="sig-type-pane" class="space-y-4 hidden">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Your Full Name</label>
+            <input type="text" id="sig-typed-name" oninput="renderTypedSignatures()" placeholder="Full Legal Name" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div class="space-y-2">
+            <label class="block text-xs font-semibold text-slate-600">Select Signature Style</label>
+            <div class="grid grid-cols-2 gap-3" id="typed-style-options">
+              <!-- Dynamically populated with cursive previews -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ESIGN Compliance Notice & Checkbox -->
+        <div class="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80 text-xs text-amber-900 flex items-start space-x-2.5">
+          <input type="checkbox" id="legal-consent-checkbox" class="mt-0.5 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500">
+          <label for="legal-consent-checkbox" class="cursor-pointer select-none">
+            I agree that my electronic signature constitutes a legally binding execution under the <strong>ESIGN Act</strong> (15 U.S. Code § 7001) and <strong>UETA</strong> regulations.
+          </label>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-3">
+        <button onclick="hideSignatureModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors">Cancel</button>
+        <button onclick="applySignature()" class="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm flex items-center">
+          <i data-lucide="check" class="w-4 h-4 mr-1.5"></i>
+          Adopt and Sign
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SENDER AUTHENTICATION (DOCUSIGN LOGIN & REGISTER) -->
+  <div id="auth-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4" onclick="if(event.target === this) hideAuthModal();">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden relative">
+      <!-- Header with Close Button -->
+      <div class="p-6 bg-slate-900 text-white text-center relative">
+        <button onclick="hideAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors" title="Close">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+        <div class="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center mx-auto mb-3 shadow-md">
+          <i data-lucide="lock" class="w-6 h-6 text-white"></i>
+        </div>
+        <h3 class="text-lg font-bold">OpenSign Sender Workspace</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Private, multi-tenant e-signature portal</p>
+      </div>
+
+      <!-- Tab Switcher -->
+      <div class="flex border-b border-slate-200 bg-slate-50 text-xs font-bold text-center">
+        <button id="auth-tab-login-btn" onclick="switchAuthTab('login')" class="flex-1 py-3 text-indigo-600 border-b-2 border-indigo-600 bg-white">
+          Sign In
+        </button>
+        <button id="auth-tab-reg-btn" onclick="switchAuthTab('register')" class="flex-1 py-3 text-slate-500 border-b-2 border-transparent hover:text-slate-700">
+          Create Account
+        </button>
+      </div>
+
+      <!-- Form Panes -->
+      <div class="p-6 space-y-4">
+        <!-- Error Alert -->
+        <div id="auth-error-alert" class="hidden p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium"></div>
+
+        <!-- LOGIN FORM -->
+        <form id="auth-login-form" onsubmit="event.preventDefault(); submitLogin();" class="space-y-3.5">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Work Email</label>
+            <input type="email" id="auth-login-email" value="rafael@opensign.local" placeholder="you@company.com" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
+            <input type="password" id="auth-login-password" value="password123" placeholder="••••••••" required class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95">
+            Log In to Workspace
+          </button>
+          
+          <div class="pt-2 border-t border-slate-100">
+            <button type="button" onclick="quickDemoLogin()" class="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center space-x-1.5">
+              <span>⚡</span>
+              <span>1-Click Demo Login as Rafael</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- REGISTER FORM -->
+        <form id="auth-reg-form" onsubmit="event.preventDefault(); submitRegister();" class="hidden space-y-3.5">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Full Legal Name</label>
+            <input type="text" id="auth-reg-name" placeholder="John Doe" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Work Email</label>
+            <input type="email" id="auth-reg-email" placeholder="john@example.com" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Create Password (Min 6 chars)</label>
+            <input type="password" id="auth-reg-password" placeholder="••••••••" class="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95">
+            Create Free Account
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <footer class="border-t border-slate-200 bg-white py-6 text-center text-xs text-slate-500 no-print mt-auto">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>OpenSign — 100% Free & Open-Source e-Signature Engine (MIT License)</p>
+      <p class="font-mono text-slate-400">Zero subscriptions • No envelope limits • Self-hosted</p>
+    </div>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

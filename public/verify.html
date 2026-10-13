@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Integrity Verifier — OpenSign</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col font-['Inter'] antialiased">
+
+  <!-- Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="/" class="flex items-center space-x-2 text-slate-700 hover:text-slate-900 transition-colors">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-sm">
+            <i data-lucide="file-signature" class="w-5 h-5"></i>
+          </div>
+          <span class="font-bold text-lg text-slate-900">Open<span class="text-indigo-600">Sign</span></span>
+        </a>
+        <span class="text-slate-300">/</span>
+        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Independent Document Verifier</span>
+      </div>
+
+      <a href="/" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center">
+        <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> Back to Dashboard
+      </a>
+    </div>
+  </header>
+
+  <!-- Verifier Container -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-10 space-y-8">
+    <div class="text-center space-y-2">
+      <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+        <i data-lucide="shield-check" class="w-4 h-4"></i>
+        <span>Cryptographic Non-Repudiation Engine</span>
+      </div>
+      <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Verify Electronic Document Authenticity</h1>
+      <p class="text-sm text-slate-500 max-w-xl mx-auto">Upload any signed PDF agreement or paste a Certificate ID / SHA-256 hash to prove legal validity and verify it has not been tampered with.</p>
+    </div>
+
+    <!-- Verification Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm space-y-6">
+      
+      <!-- Hidden File Input (Outside Dropzone to prevent click event bubbling issues) -->
+      <input type="file" id="pdf-file-input" accept="application/pdf" style="display: none;" onchange="handleFileSelect(event)">
+
+      <!-- Drag & Drop Zone -->
+      <div id="dropzone" onclick="triggerFileInput()" class="border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/30 hover:bg-indigo-50/60 rounded-2xl p-8 text-center cursor-pointer transition-all">
+        <div class="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-600 mx-auto flex items-center justify-center mb-3">
+          <i data-lucide="file-check-2" class="w-7 h-7"></i>
+        </div>
+        <p class="text-sm font-bold text-slate-800">Drop signed PDF here, or click to choose file</p>
+        <p class="text-xs text-slate-400 mt-1">Verification is performed cryptographically via SHA-256 checksum seal</p>
+        <div class="mt-4 flex justify-center">
+          <button type="button" onclick="event.stopPropagation(); triggerFileInput();" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors cursor-pointer">
+            <i data-lucide="upload" class="w-4 h-4 mr-1.5"></i> Choose PDF File
+          </button>
+        </div>
+        <p id="file-status-badge" class="hidden text-xs font-mono font-semibold text-indigo-700 mt-3"></p>
+      </div>
+
+      <div class="flex items-center my-4">
+        <div class="flex-1 border-t border-slate-200"></div>
+        <span class="px-3 text-xs text-slate-400 font-semibold uppercase">Or verify by identifier</span>
+        <div class="flex-1 border-t border-slate-200"></div>
+      </div>
+
+      <!-- Hash / Cert ID Form -->
+      <div class="flex space-x-2">
+        <input type="text" id="hash-query-input" placeholder="Paste SHA-256 checksum, Certificate ID (e.g. CERT-...), or Envelope ID" class="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        <button onclick="verifyByQuery()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors flex items-center">
+          <i data-lucide="search" class="w-4 h-4 mr-1.5"></i> Verify
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Loading State -->
+    <div id="verify-loading" class="hidden text-center py-8">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-t-transparent"></div>
+      <p class="text-xs text-slate-500 mt-2 font-medium">Computing SHA-256 cryptographic digest & inspecting audit registry...</p>
+    </div>
+
+    <!-- RESULT 1: SUCCESSFUL / PENDING VERIFICATION -->
+    <div id="result-success" class="hidden bg-white rounded-2xl border-2 border-emerald-400 p-8 shadow-md space-y-6">
+      <div class="flex items-start justify-between border-b border-slate-100 pb-5">
+        <div class="flex items-center space-x-3.5">
+          <div id="res-icon-wrap" class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+            <i id="res-status-icon" data-lucide="shield-check" class="w-7 h-7"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h3 id="res-heading" class="text-lg font-bold text-slate-900">Certificate of Validity Confirmed</h3>
+              <span id="res-badge" class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">AUTHENTIC & TAMPER-FREE</span>
+            </div>
+            <p id="res-doc-title" class="text-xs text-slate-600 font-semibold mt-0.5">Agreement Title</p>
+          </div>
+        </div>
+        <span id="res-cert-id" class="text-xs font-mono bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg border border-indigo-200 font-bold">CERT-ID</span>
+      </div>
+
+      <!-- Action Banner: Pending signing or completed download -->
+      <div id="res-action-banner" class="hidden"></div>
+
+      <!-- Cryptographic Details -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+          <div>
+            <span class="text-slate-400 text-[10px] uppercase font-sans font-bold block">Pre-Sign SHA-256 Digest:</span>
+            <span id="res-pre-hash" class="text-slate-700 break-all text-[11px]">--</span>
+          </div>
+          <div>
+            <span class="text-slate-400 text-[10px] uppercase font-sans font-bold block">Post-Sign Sealed SHA-256 Digest:</span>
+            <span id="res-post-hash" class="text-emerald-700 font-bold break-all text-[11px]">--</span>
+          </div>
+        </div>
+
+        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+          <div>
+            <span class="text-slate-400 text-[10px] uppercase font-sans font-bold block">Document Execution Status:</span>
+            <span id="res-status" class="text-slate-800 font-bold uppercase text-[11px]">COMPLETED</span>
+          </div>
+          <div>
+            <span class="text-slate-400 text-[10px] uppercase font-sans font-bold block">Finalized Timestamp (UTC):</span>
+            <span id="res-signed-at" class="text-slate-700 text-[11px]">--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Signers Roster -->
+      <div>
+        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Verified Signers Roster</p>
+        <div id="res-signers-list" class="space-y-2"></div>
+      </div>
+
+      <!-- Audit Trail Timeline -->
+      <div>
+        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Recorded Audit Trail Events</p>
+        <div id="res-audit-timeline" class="space-y-2 max-h-48 overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <!-- RESULT 2: VERIFICATION FAILED -->
+    <div id="result-failed" class="hidden bg-white rounded-2xl border-2 border-red-300 p-8 shadow-md text-center space-y-4">
+      <div class="w-14 h-14 rounded-2xl bg-red-100 text-red-600 mx-auto flex items-center justify-center">
+        <i data-lucide="shield-alert" class="w-8 h-8"></i>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold text-slate-900">Verification Failed — Record Not Found</h3>
+        <p id="res-failed-msg" class="text-xs text-slate-500 max-w-md mx-auto mt-1">This document has either been modified after signing, or was not generated through this OpenSign cluster.</p>
+      </div>
+      <div class="p-3 bg-red-50 rounded-xl border border-red-200 text-xs font-mono text-red-800 max-w-lg mx-auto break-all">
+        <span class="text-slate-400 block font-sans text-[10px] uppercase font-bold">Computed Checksum:</span>
+        <span id="res-failed-hash">--</span>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) lucide.createIcons();
+
+      // Prevent default drag/drop behaviors across window
+      window.addEventListener('dragover', (e) => e.preventDefault());
+      window.addEventListener('drop', (e) => e.preventDefault());
+
+      const dropzone = document.getElementById('dropzone');
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('border-indigo-500', 'bg-indigo-100/50');
+      });
+
+      dropzone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('border-indigo-500', 'bg-indigo-100/50');
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('border-indigo-500', 'bg-indigo-100/50');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          processFile(e.dataTransfer.files[0]);
+        }
+      });
+    });
+
+    function triggerFileInput() {
+      const fi = document.getElementById('pdf-file-input');
+      if (fi) fi.click();
+    }
+
+    function handleFileSelect(e) {
+      if (e.target.files && e.target.files[0]) {
+        const file = e.target.files[0];
+        processFile(file);
+        e.target.value = '';
+      }
+    }
+
+    let currentFileName = '';
+
+    async function processFile(file) {
+      if (!file) return;
+      currentFileName = file.name;
+
+      const badge = document.getElementById('file-status-badge');
+      if (badge) {
+        badge.textContent = `Analyzing: ${file.name} (${(file.size / 1024).toFixed(1)} KB)...`;
+        badge.className = 'text-xs font-mono font-semibold text-indigo-700 mt-3';
+        badge.classList.remove('hidden');
+      }
+
+      showLoading(true);
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64 = reader.result.split(',')[1];
+          const res = await fetch('/api/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pdfBase64: base64, filename: file.name })
+          });
+          const data = await res.json();
+          renderResult(data);
+        } catch (err) {
+          if (badge) {
+            badge.textContent = `Failed to verify: ${err.message}`;
+            badge.className = 'text-xs font-mono font-semibold text-red-600 mt-3';
+          }
+          alert('Verification error: ' + err.message);
+        } finally {
+          showLoading(false);
+        }
+      };
+      reader.onerror = () => {
+        if (badge) {
+          badge.textContent = 'Could not read the selected PDF file.';
+          badge.className = 'text-xs font-mono font-semibold text-red-600 mt-3';
+        }
+        alert('Could not read the selected PDF file.');
+        showLoading(false);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function verifyByQuery() {
+      const q = document.getElementById('hash-query-input').value.trim();
+      if (!q) {
+        alert('Please enter a Certificate ID, hash, or Envelope ID');
+        return;
+      }
+      currentFileName = '';
+      const badge = document.getElementById('file-status-badge');
+      if (badge) badge.classList.add('hidden');
+
+      showLoading(true);
+      try {
+        const res = await fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: q })
+        });
+        const data = await res.json();
+        renderResult(data);
+      } catch (err) {
+        alert('Verification error: ' + err.message);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function showLoading(show) {
+      const spinner = document.getElementById('verify-loading');
+      if (spinner) spinner.classList.toggle('hidden', !show);
+      if (show) {
+        document.getElementById('result-success')?.classList.add('hidden');
+        document.getElementById('result-failed')?.classList.add('hidden');
+      }
+    }
+
+    function renderResult(data) {
+      document.getElementById('verify-loading')?.classList.add('hidden');
+      const badge = document.getElementById('file-status-badge');
+
+      if (data.verified && data.document) {
+        const doc = data.document;
+        const isCompleted = doc.status === 'completed';
+
+        const resultCard = document.getElementById('result-success');
+        const iconWrap = document.getElementById('res-icon-wrap');
+        const heading = document.getElementById('res-heading');
+        const badgeEl = document.getElementById('res-badge');
+        const certEl = document.getElementById('res-cert-id');
+        const postHashEl = document.getElementById('res-post-hash');
+        const statusEl = document.getElementById('res-status');
+        const signedAtEl = document.getElementById('res-signed-at');
+        const actionBanner = document.getElementById('res-action-banner');
+
+        if (badge && currentFileName) {
+          if (isCompleted) {
+            badge.textContent = `Verified: ${currentFileName} — Cryptographically Sealed & Authentic`;
+            badge.className = 'text-xs font-mono font-semibold text-emerald-600 mt-3';
+          } else {
+            badge.textContent = `Identified: ${currentFileName} — Registered Draft (Awaiting Signatures)`;
+            badge.className = 'text-xs font-mono font-semibold text-amber-600 mt-3';
+          }
+        }
+
+        if (isCompleted) {
+          resultCard.className = 'bg-white rounded-2xl border-2 border-emerald-400 p-8 shadow-md space-y-6';
+          iconWrap.className = 'w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center';
+          iconWrap.innerHTML = '<i data-lucide="shield-check" class="w-7 h-7"></i>';
+          heading.textContent = 'Certificate of Validity Confirmed';
+          badgeEl.textContent = 'AUTHENTIC & TAMPER-FREE';
+          badgeEl.className = 'bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-emerald-300';
+
+          certEl.textContent = doc.certificateId || 'CERT-COMPLETED';
+          certEl.className = 'text-xs font-mono bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg border border-indigo-200 font-bold';
+
+          postHashEl.textContent = doc.postSignHash || 'Anchored';
+          postHashEl.className = 'text-emerald-700 font-bold break-all text-[11px]';
+
+          statusEl.textContent = 'COMPLETED';
+          statusEl.className = 'text-emerald-700 font-bold uppercase text-[11px]';
+
+          signedAtEl.textContent = doc.signedAt ? new Date(doc.signedAt).toUTCString() : 'N/A';
+          signedAtEl.className = 'text-slate-700 text-[11px]';
+
+          actionBanner.className = 'p-4 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center justify-between text-xs';
+          actionBanner.innerHTML = `
+            <div>
+              <p class="font-bold text-emerald-900">Fully Executed & Sealed Agreement</p>
+              <p class="text-[11px] text-emerald-700">All signers have signed and the certificate of completion has been anchored.</p>
+            </div>
+            <a href="/api/documents/${doc.id}/pdf" download class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors">
+              <i data-lucide="download" class="w-4 h-4 mr-1.5"></i> Download Sealed PDF
+            </a>
+          `;
+          actionBanner.classList.remove('hidden');
+
+        } else {
+          resultCard.className = 'bg-white rounded-2xl border-2 border-amber-400 p-8 shadow-md space-y-6';
+          iconWrap.className = 'w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center';
+          iconWrap.innerHTML = '<i data-lucide="clock" class="w-7 h-7"></i>';
+          heading.textContent = 'Document Registered — Execution Pending';
+          badgeEl.textContent = 'AWAITING SIGNATURE (PENDING)';
+          badgeEl.className = 'bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-amber-300';
+
+          certEl.textContent = 'PENDING ISSUANCE';
+          certEl.className = 'text-xs font-mono bg-amber-50 text-amber-700 px-3 py-1 rounded-lg border border-amber-200 font-bold';
+
+          postHashEl.textContent = 'Not generated yet — Awaiting signatures before sealing';
+          postHashEl.className = 'text-amber-700 italic break-all text-[11px]';
+
+          statusEl.textContent = (doc.status || 'PENDING').toUpperCase();
+          statusEl.className = 'text-amber-700 font-bold uppercase text-[11px]';
+
+          signedAtEl.textContent = 'Pending execution by signer(s)';
+          signedAtEl.className = 'text-amber-700 italic text-[11px]';
+
+          actionBanner.className = 'p-4 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs';
+          actionBanner.innerHTML = `
+            <div>
+              <p class="font-bold text-amber-900">Pending Execution Notice</p>
+              <p class="text-[11px] text-amber-700">This document checksum is authentic and registered, but execution is incomplete.</p>
+            </div>
+            <a href="/sign/${doc.id}" target="_blank" class="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors">
+              <i data-lucide="pen-tool" class="w-4 h-4 mr-1.5"></i> Open Envelope to Sign &rarr;
+            </a>
+          `;
+          actionBanner.classList.remove('hidden');
+        }
+
+        document.getElementById('result-success').classList.remove('hidden');
+        document.getElementById('result-failed').classList.add('hidden');
+        setTimeout(() => {
+          document.getElementById('result-success')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+
+        document.getElementById('res-doc-title').textContent = doc.title || 'Untitled Agreement';
+        document.getElementById('res-pre-hash').textContent = doc.preSignHash || 'N/A';
+
+        // Signers
+        const signersList = document.getElementById('res-signers-list');
+        signersList.innerHTML = '';
+        if (doc.signers && Array.isArray(doc.signers)) {
+          doc.signers.forEach((s, idx) => {
+            const div = document.createElement('div');
+            div.className = 'p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs';
+            div.innerHTML = `
+              <div>
+                <span class="font-bold text-slate-800">${escapeHtml(s.name)}</span>
+                <span class="text-slate-500 ml-1">&lt;${escapeHtml(s.email)}&gt;</span>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold ${s.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                ${s.status === 'completed' ? 'SIGNED' : 'PENDING'}
+              </span>
+            `;
+            signersList.appendChild(div);
+          });
+        }
+
+        // Audit Trail
+        const timeline = document.getElementById('res-audit-timeline');
+        timeline.innerHTML = '';
+        if (doc.auditLog && Array.isArray(doc.auditLog)) {
+          doc.auditLog.forEach(log => {
+            const div = document.createElement('div');
+            div.className = 'text-[11px] p-2 bg-slate-50 rounded-lg border border-slate-200 flex justify-between';
+            div.innerHTML = `
+              <div>
+                <span class="font-bold text-slate-700">${escapeHtml(log.event)}</span>
+                <span class="text-slate-500 block text-[10px]">${escapeHtml(log.details || '')}</span>
+              </div>
+              <span class="text-slate-400 font-mono text-[10px]">${new Date(log.timestamp).toUTCString()}</span>
+            `;
+            timeline.appendChild(div);
+          });
+        }
+
+      } else {
+        if (badge && currentFileName) {
+          badge.textContent = `Analyzed: ${currentFileName} — No matching record found`;
+          badge.className = 'text-xs font-mono font-semibold text-red-600 mt-3';
+        }
+        document.getElementById('result-failed').classList.remove('hidden');
+        document.getElementById('result-success').classList.add('hidden');
+        document.getElementById('res-failed-hash').textContent = data.hashComputed || data.hashMatched || 'N/A';
+        setTimeout(() => {
+          document.getElementById('result-failed')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 80);
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
