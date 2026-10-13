@@ -51,7 +51,7 @@ Commercial platforms like DocuSign and Adobe Sign charge **$10 to $45+ per user/
 ### Option 1: Docker (Fastest)
 
 ```bash
-git clone https://github.com/your-username/opensign.git
+git clone https://github.com/Rafail-Vasilakis/opensign.git
 cd opensign
 docker compose up -d
 ```
@@ -62,7 +62,7 @@ Visit **`http://localhost:3000`** in your browser.
 ### Option 2: Local Node.js
 
 ```bash
-git clone https://github.com/your-username/opensign.git
+git clone https://github.com/Rafail-Vasilakis/opensign.git
 cd opensign
 npm install
 npm start
@@ -93,7 +93,7 @@ OpenSign is engineered to satisfy statutory requirements under the **United Stat
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome!  
-Feel free to check out the [issues page](https://github.com/your-username/opensign/issues).
+Feel free to check out the [issues page](https://github.com/Rafail-Vasilakis/opensign/issues).
 
 ---
 
