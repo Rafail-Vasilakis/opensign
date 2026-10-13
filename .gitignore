@@ -13,3 +13,7 @@ uploads/
 .vscode/
 .idea/
 
+
+# AI Agent configuration and local skills
+.agent/
+.agents/
