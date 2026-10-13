@@ -70,6 +70,28 @@ npm start
 
 ---
 
+## ✉️ Email & SMTP Setup (Optional)
+
+OpenSign includes a full 3-stage email dispatcher (signature invitations, counter-signer turn alerts, and final executed vector PDF delivery).
+
+* **Default Mode (Zero Configuration):** By default, OpenSign runs in simulated local outbox mode and prints all emails, signing links, and PDF attachments directly to the terminal console.
+* **Production SMTP Delivery:** To send real outgoing emails via Gmail, Resend, SendGrid, Amazon SES, Mailgun, or your own mail server, copy `.env.example` to `.env` or set environment variables:
+
+```bash
+cp .env.example .env
+```
+
+```env
+SMTP_HOST=smtp.gmail.com          # Or smtp.resend.com, SendGrid, Amazon SES, etc.
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password       # App Password (e.g. from Google Account Security)
+SMTP_FROM="Your Company" <no-reply@yourdomain.com>
+BASE_URL=https://sign.yourdomain.com
+```
+
+---
+
 ## 🧭 Application Routes
 
 * **`/`** — Main Management Dashboard (Envelope metrics, status tracking, download signed copies).

@@ -12,3 +12,10 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - BASE_URL=http://localhost:3000
+      # Optional: SMTP for real email delivery (works with Gmail, Sendgrid, Resend, Amazon SES, etc.)
+      # - SMTP_HOST=smtp.example.com
+      # - SMTP_PORT=587
+      # - SMTP_USER=your-smtp-user
+      # - SMTP_PASS=your-smtp-password
+      # - SMTP_FROM="OpenSign" <no-reply@yourdomain.com>
